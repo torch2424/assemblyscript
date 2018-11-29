@@ -11,19 +11,19 @@
   get_local $0
   i32.const 1
   i32.le_s
-  if
+  if (result i32)
    i32.const 1
-   return
+  else   
+   get_local $0
+   i32.const 1
+   i32.sub
+   call $recursive/fib
+   get_local $0
+   i32.const 2
+   i32.sub
+   call $recursive/fib
+   i32.add
   end
-  get_local $0
-  i32.const 1
-  i32.sub
-  call $recursive/fib
-  get_local $0
-  i32.const 2
-  i32.sub
-  call $recursive/fib
-  i32.add
  )
  (func $null (; 1 ;) (type $v)
   nop

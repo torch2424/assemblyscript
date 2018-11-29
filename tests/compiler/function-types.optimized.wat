@@ -134,18 +134,19 @@
   end
   i32.const 2
   set_global $~argc
-  block $1of1
-   block $0of1
-    block $outOfRange
+  block $block$34$break
+   block $switch$32$default
+    block $switch$32$case$36
      get_global $~argc
      i32.const 2
      i32.sub
-     br_table $0of1 $1of1 $outOfRange
+     br_table $switch$32$case$36 $block$34$break $switch$32$default
     end
-    unreachable
+    i32.const 1
+    set_local $0
+    br $block$34$break
    end
-   i32.const 1
-   set_local $0
+   unreachable
   end
   i32.const 2
   set_global $~argc
