@@ -13,22 +13,19 @@
  (func $start (; 1 ;) (type $v)
   (local $0 i32)
   (local $1 i32)
-  block $break|0
-   i32.const 0
-   set_global $for/i
-   loop $repeat|0
-    get_global $for/i
-    i32.const 10
-    i32.ge_s
-    br_if $break|0
+  i32.const 0
+  set_global $for/i
+  loop $shape$1$continue
+   get_global $for/i
+   i32.const 10
+   i32.lt_s
+   if
     get_global $for/i
     i32.const 1
     i32.add
     set_global $for/i
-    br $repeat|0
-    unreachable
+    br $shape$1$continue
    end
-   unreachable
   end
   get_global $for/i
   i32.const 10
@@ -41,32 +38,28 @@
    call $~lib/env/abort
    unreachable
   end
-  block $break|1
-   loop $repeat|1
-    get_local $0
-    i32.const 10
-    i32.ge_s
-    br_if $break|1
+  loop $shape$8$continue
+   get_local $0
+   i32.const 10
+   i32.lt_s
+   if
     get_local $0
     i32.const 1
     i32.add
     set_local $0
-    br $repeat|1
-    unreachable
+    br $shape$8$continue
    end
-   unreachable
   end
-  loop $repeat|2
+  loop $shape$11$continue
    get_global $for/i
    i32.const 0
-   i32.le_s
-   i32.eqz
+   i32.gt_s
    if
     get_global $for/i
     i32.const 1
     i32.sub
     set_global $for/i
-    br $repeat|2
+    br $shape$11$continue
    end
   end
   get_global $for/i
@@ -78,43 +71,39 @@
    call $~lib/env/abort
    unreachable
   end
-  loop $repeat|3
+  loop $shape$17$continue
    get_global $for/i
    i32.const 10
-   i32.eq
-   i32.eqz
+   i32.ne
    if
     get_global $for/i
     i32.const 1
     i32.add
     set_global $for/i
-    br $repeat|3
+    br $shape$17$continue
    end
   end
-  loop $repeat|4
+  loop $shape$21$continue
    get_global $for/i
    i32.const 1
    i32.sub
    set_global $for/i
    get_global $for/i
-   br_if $repeat|4
+   br_if $shape$21$continue
   end
-  block $break|5
-   i32.const 0
-   set_local $0
-   loop $repeat|5
-    get_local $0
-    i32.const 10
-    i32.ge_s
-    br_if $break|5
+  i32.const 0
+  set_local $0
+  loop $shape$25$continue
+   get_local $0
+   i32.const 10
+   i32.lt_s
+   if
     get_local $0
     i32.const 1
     i32.add
     set_local $0
-    br $repeat|5
-    unreachable
+    br $shape$25$continue
    end
-   unreachable
   end
   get_local $0
   i32.const 10
@@ -127,45 +116,33 @@
    call $~lib/env/abort
    unreachable
   end
-  block $break|6
-   i32.const 0
-   set_local $0
-   loop $repeat|6
-    get_local $0
-    i32.const 10
-    i32.ge_s
-    br_if $break|6
-    block $break|7
-     i32.const 0
-     set_local $1
-     loop $repeat|7
-      block $continue|7
-       get_local $1
-       i32.const 10
-       i32.ge_s
-       br_if $break|7
-       get_local $0
-       get_local $1
-       i32.eq
-       br_if $continue|7
-      end
+  i32.const 0
+  set_local $0
+  loop $shape$32$continue
+   get_local $0
+   i32.const 10
+   i32.lt_s
+   if
+    i32.const 0
+    set_local $1
+    loop $shape$35$continue
+     get_local $1
+     i32.const 10
+     i32.lt_s
+     if
       get_local $1
       i32.const 1
       i32.add
       set_local $1
-      br $repeat|7
-      unreachable
+      br $shape$35$continue
      end
-     unreachable
     end
     get_local $0
     i32.const 1
     i32.add
     set_local $0
-    br $repeat|6
-    unreachable
+    br $shape$32$continue
    end
-   unreachable
   end
  )
  (func $null (; 2 ;) (type $v)

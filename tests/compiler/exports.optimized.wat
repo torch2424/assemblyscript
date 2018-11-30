@@ -89,32 +89,32 @@
   i32.shl
   i32.gt_u
   if
-   get_local $3
-   get_local $2
-   get_local $1
-   i32.sub
-   i32.const 65535
-   i32.add
-   i32.const -65536
-   i32.and
-   i32.const 16
-   i32.shr_u
-   tee_local $0
-   get_local $3
-   get_local $0
-   i32.gt_s
-   select
-   grow_memory
-   i32.const 0
-   i32.lt_s
-   if
+   block $block$13$break
+    get_local $3
+    get_local $2
+    get_local $1
+    i32.sub
+    i32.const 65535
+    i32.add
+    i32.const -65536
+    i32.and
+    i32.const 16
+    i32.shr_u
+    tee_local $0
+    get_local $3
+    get_local $0
+    i32.gt_s
+    select
+    grow_memory
+    i32.const 0
+    i32.ge_s
+    br_if $block$13$break
     get_local $0
     grow_memory
     i32.const 0
-    i32.lt_s
-    if
-     unreachable
-    end
+    i32.ge_s
+    br_if $block$13$break
+    unreachable
    end
   end
   get_local $2
@@ -143,18 +143,19 @@
   nop
  )
  (func $exports/subOpt|trampoline (; 9 ;) (type $iii) (param $0 i32) (param $1 i32) (result i32)
-  block $1of1
-   block $0of1
-    block $outOfRange
+  block $block$11$break
+   block $switch$1$default
+    block $switch$1$case$4
      get_global $~argc
      i32.const 1
      i32.sub
-     br_table $0of1 $1of1 $outOfRange
+     br_table $switch$1$case$4 $block$11$break $switch$1$default
     end
-    unreachable
+    i32.const 0
+    set_local $1
+    br $block$11$break
    end
-   i32.const 0
-   set_local $1
+   unreachable
   end
   get_local $0
   get_local $1
@@ -165,16 +166,17 @@
   set_global $~argc
  )
  (func $exports/Car#constructor|trampoline (; 11 ;) (type $iii) (param $0 i32) (param $1 i32) (result i32)
-  block $1of1
-   block $0of1
-    block $outOfRange
+  block $block$2$break
+   block $switch$1$default
+    block $switch$1$case$4
      get_global $~argc
-     br_table $0of1 $1of1 $outOfRange
+     br_table $switch$1$case$4 $block$2$break $switch$1$default
     end
-    unreachable
+    i32.const 2
+    set_local $1
+    br $block$2$break
    end
-   i32.const 2
-   set_local $1
+   unreachable
   end
   get_local $0
   i32.eqz

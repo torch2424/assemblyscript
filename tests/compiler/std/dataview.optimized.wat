@@ -61,32 +61,32 @@
   i32.shl
   i32.gt_u
   if
-   get_local $3
-   get_local $2
-   get_local $1
-   i32.sub
-   i32.const 65535
-   i32.add
-   i32.const -65536
-   i32.and
-   i32.const 16
-   i32.shr_u
-   tee_local $0
-   get_local $3
-   get_local $0
-   i32.gt_s
-   select
-   grow_memory
-   i32.const 0
-   i32.lt_s
-   if
+   block $block$13$break
+    get_local $3
+    get_local $2
+    get_local $1
+    i32.sub
+    i32.const 65535
+    i32.add
+    i32.const -65536
+    i32.and
+    i32.const 16
+    i32.shr_u
+    tee_local $0
+    get_local $3
+    get_local $0
+    i32.gt_s
+    select
+    grow_memory
+    i32.const 0
+    i32.ge_s
+    br_if $block$13$break
     get_local $0
     grow_memory
     i32.const 0
-    i32.lt_s
-    if
-     unreachable
-    end
+    i32.ge_s
+    br_if $block$13$break
+    unreachable
    end
   end
   get_local $2
@@ -98,27 +98,28 @@
   get_local $0
   i32.const 1073741816
   i32.gt_u
-  if
+  if (result i32)
    i32.const 0
    i32.const 72
    i32.const 23
    i32.const 2
    call $~lib/env/abort
    unreachable
+  else   
+   i32.const 1
+   i32.const 32
+   get_local $0
+   i32.const 7
+   i32.add
+   i32.clz
+   i32.sub
+   i32.shl
+   call $~lib/allocator/arena/__memory_allocate
+   tee_local $1
+   get_local $0
+   i32.store
+   get_local $1
   end
-  i32.const 1
-  i32.const 32
-  get_local $0
-  i32.const 7
-  i32.add
-  i32.clz
-  i32.sub
-  i32.shl
-  call $~lib/allocator/arena/__memory_allocate
-  tee_local $1
-  get_local $0
-  i32.store
-  get_local $1
  )
  (func $~lib/internal/memory/memset (; 3 ;) (type $FUNCSIG$vii) (param $0 i32) (param $1 i32)
   (local $2 i32)
@@ -190,24 +191,24 @@
   if
    return
   end
-  get_local $0
   i32.const 0
   get_local $0
   i32.sub
   i32.const 3
   i32.and
   tee_local $2
+  get_local $0
   i32.add
   tee_local $0
   i32.const 0
   i32.store
-  get_local $0
   get_local $1
   get_local $2
   i32.sub
   i32.const -4
   i32.and
   tee_local $1
+  get_local $0
   i32.add
   i32.const 4
   i32.sub
@@ -292,19 +293,19 @@
   i32.const 0
   i32.store
   get_local $0
-  get_local $0
   i32.const 4
   i32.and
   i32.const 24
   i32.add
   tee_local $2
+  get_local $0
   i32.add
   set_local $0
   get_local $1
   get_local $2
   i32.sub
   set_local $1
-  loop $continue|0
+  loop $shape$19$continue
    get_local $1
    i32.const 32
    i32.ge_u
@@ -335,7 +336,7 @@
     i32.const 32
     i32.add
     set_local $0
-    br $continue|0
+    br $shape$19$continue
    end
   end
  )
@@ -383,16 +384,17 @@
    i32.const 63
    call $~lib/env/abort
    unreachable
+  else   
+   get_local $1
+   get_local $0
+   i32.load
+   get_local $0
+   i32.load offset=4
+   i32.add
+   i32.add
+   get_local $2
+   i32.store8 offset=8
   end
-  get_local $0
-  i32.load
-  get_local $0
-  i32.load offset=4
-  i32.add
-  get_local $1
-  i32.add
-  get_local $2
-  i32.store8 offset=8
  )
  (func $~lib/dataview/DataView#constructor (; 6 ;) (type $FUNCSIG$iiii) (param $0 i32) (param $1 i32) (param $2 i32) (result i32)
   (local $3 i32)
@@ -434,26 +436,27 @@
   get_local $0
   i32.load
   i32.gt_s
-  if
+  if (result i32)
    i32.const 0
    i32.const 136
    i32.const 16
    i32.const 53
    call $~lib/env/abort
    unreachable
+  else   
+   i32.const 12
+   call $~lib/allocator/arena/__memory_allocate
+   tee_local $3
+   get_local $0
+   i32.store
+   get_local $3
+   get_local $1
+   i32.store offset=4
+   get_local $3
+   get_local $2
+   i32.store offset=8
+   get_local $3
   end
-  i32.const 12
-  call $~lib/allocator/arena/__memory_allocate
-  tee_local $3
-  get_local $0
-  i32.store
-  get_local $3
-  get_local $1
-  i32.store offset=4
-  get_local $3
-  get_local $2
-  i32.store offset=8
-  get_local $3
  )
  (func $~lib/dataview/DataView#getFloat32 (; 7 ;) (type $iiif) (param $0 i32) (param $1 i32) (param $2 i32) (result f32)
   (local $3 i32)
@@ -595,22 +598,23 @@
    set_local $2
   end
   get_local $2
-  if
+  if (result i32)
    i32.const 0
    i32.const 136
    i32.const 188
    i32.const 73
    call $~lib/env/abort
    unreachable
+  else   
+   get_local $0
+   i32.load
+   get_local $0
+   i32.load offset=4
+   i32.add
+   get_local $1
+   i32.add
+   i32.load8_s offset=8
   end
-  get_local $0
-  i32.load
-  get_local $0
-  i32.load offset=4
-  i32.add
-  get_local $1
-  i32.add
-  i32.load8_s offset=8
  )
  (func $~lib/dataview/DataView#getInt16 (; 11 ;) (type $iiii) (param $0 i32) (param $1 i32) (param $2 i32) (result i32)
   (local $3 i32)
@@ -653,15 +657,15 @@
   i32.eqz
   if
    get_local $0
-   i32.const 8
-   i32.shl
-   get_local $0
    i32.const 16
    i32.shl
    i32.const 24
    i32.shr_s
    i32.const 255
    i32.and
+   get_local $0
+   i32.const 8
+   i32.shl
    i32.or
    set_local $0
   end
@@ -772,22 +776,23 @@
    set_local $2
   end
   get_local $2
-  if
+  if (result i32)
    i32.const 0
    i32.const 136
    i32.const 188
    i32.const 73
    call $~lib/env/abort
    unreachable
+  else   
+   get_local $0
+   i32.load
+   get_local $0
+   i32.load offset=4
+   i32.add
+   get_local $1
+   i32.add
+   i32.load8_u offset=8
   end
-  get_local $0
-  i32.load
-  get_local $0
-  i32.load offset=4
-  i32.add
-  get_local $1
-  i32.add
-  i32.load8_u offset=8
  )
  (func $~lib/dataview/DataView#getUint16 (; 15 ;) (type $iiii) (param $0 i32) (param $1 i32) (param $2 i32) (result i32)
   (local $3 i32)
@@ -965,15 +970,15 @@
   i32.eqz
   if
    get_local $1
-   i32.const 8
-   i32.shl
-   get_local $1
    i32.const 16
    i32.shl
    i32.const 24
    i32.shr_s
    i32.const 255
    i32.and
+   get_local $1
+   i32.const 8
+   i32.shl
    i32.or
    set_local $1
   end

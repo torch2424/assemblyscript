@@ -46,32 +46,32 @@
   i32.shl
   i32.gt_u
   if
-   get_local $3
-   get_local $2
-   get_local $1
-   i32.sub
-   i32.const 65535
-   i32.add
-   i32.const -65536
-   i32.and
-   i32.const 16
-   i32.shr_u
-   tee_local $0
-   get_local $3
-   get_local $0
-   i32.gt_s
-   select
-   grow_memory
-   i32.const 0
-   i32.lt_s
-   if
+   block $block$13$break
+    get_local $3
+    get_local $2
+    get_local $1
+    i32.sub
+    i32.const 65535
+    i32.add
+    i32.const -65536
+    i32.and
+    i32.const 16
+    i32.shr_u
+    tee_local $0
+    get_local $3
+    get_local $0
+    i32.gt_s
+    select
+    grow_memory
+    i32.const 0
+    i32.ge_s
+    br_if $block$13$break
     get_local $0
     grow_memory
     i32.const 0
-    i32.lt_s
-    if
-     unreachable
-    end
+    i32.ge_s
+    br_if $block$13$break
+    unreachable
    end
   end
   get_local $2
@@ -80,40 +80,36 @@
  )
  (func $~lib/internal/string/compareUnsafe (; 2 ;) (type $FUNCSIG$iiii) (param $0 i32) (param $1 i32) (param $2 i32) (result i32)
   (local $3 i32)
-  (local $4 i32)
-  get_local $0
-  set_local $3
-  loop $continue|0
+  loop $shape$1$continue
    get_local $2
    if (result i32)
-    get_local $3
+    get_local $0
     i32.load16_u offset=4
     get_local $1
     i32.load16_u offset=4
     i32.sub
-    tee_local $4
+    tee_local $3
     i32.eqz
    else    
     get_local $2
    end
-   tee_local $0
    if
     get_local $2
     i32.const 1
     i32.sub
     set_local $2
-    get_local $3
+    get_local $0
     i32.const 2
     i32.add
-    set_local $3
+    set_local $0
     get_local $1
     i32.const 2
     i32.add
     set_local $1
-    br $continue|0
+    br $shape$1$continue
    end
   end
-  get_local $4
+  get_local $3
  )
  (func $~lib/string/String.__eq (; 3 ;) (type $FUNCSIG$ii) (param $0 i32) (result i32)
   (local $1 i32)
@@ -143,15 +139,15 @@
   i32.const 8
   i32.load
   i32.ne
-  if
+  if (result i32)
    i32.const 0
-   return
+  else   
+   get_local $0
+   i32.const 8
+   get_local $1
+   call $~lib/internal/string/compareUnsafe
+   i32.eqz
   end
-  get_local $0
-  i32.const 8
-  get_local $1
-  call $~lib/internal/string/compareUnsafe
-  i32.eqz
  )
  (func $object-literal/bar (; 4 ;) (type $iv) (param $0 i32)
   get_local $0

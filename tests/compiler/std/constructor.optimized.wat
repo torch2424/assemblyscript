@@ -50,32 +50,32 @@
   i32.shl
   i32.gt_u
   if
-   get_local $3
-   get_local $2
-   get_local $1
-   i32.sub
-   i32.const 65535
-   i32.add
-   i32.const -65536
-   i32.and
-   i32.const 16
-   i32.shr_u
-   tee_local $0
-   get_local $3
-   get_local $0
-   i32.gt_s
-   select
-   grow_memory
-   i32.const 0
-   i32.lt_s
-   if
+   block $block$13$break
+    get_local $3
+    get_local $2
+    get_local $1
+    i32.sub
+    i32.const 65535
+    i32.add
+    i32.const -65536
+    i32.and
+    i32.const 16
+    i32.shr_u
+    tee_local $0
+    get_local $3
+    get_local $0
+    i32.gt_s
+    select
+    grow_memory
+    i32.const 0
+    i32.ge_s
+    br_if $block$13$break
     get_local $0
     grow_memory
     i32.const 0
-    i32.lt_s
-    if
-     unreachable
-    end
+    i32.ge_s
+    br_if $block$13$break
+    unreachable
    end
   end
   get_local $2
@@ -125,17 +125,8 @@
   i32.const 0
   call $~lib/allocator/arena/__memory_allocate
   set_global $std/constructor/ctorReturns
-  block $__inlined_func$std/constructor/CtorConditionallyReturns#constructor (result i32)
-   get_global $std/constructor/b
-   if
-    i32.const 0
-    call $~lib/allocator/arena/__memory_allocate
-    br $__inlined_func$std/constructor/CtorConditionallyReturns#constructor
-   end
-   i32.const 0
-   call $~lib/allocator/arena/__memory_allocate
-  end
-  tee_local $0
+  i32.const 0
+  call $~lib/allocator/arena/__memory_allocate
   set_global $std/constructor/ctorConditionallyReturns
   i32.const 0
   call $~lib/allocator/arena/__memory_allocate
