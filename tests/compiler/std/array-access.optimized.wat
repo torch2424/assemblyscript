@@ -18,7 +18,6 @@
  (export "stringArrayArrayPropertyAccess" (func $std/array-access/stringArrayArrayPropertyAccess))
  (export "stringArrayArrayMethodCall" (func $std/array-access/stringArrayArrayMethodCall))
  (func $std/array-access/i32ArrayArrayElementAccess (; 1 ;) (type $ii) (param $0 i32) (result i32)
-  i32.const 1
   i32.const 0
   get_local $0
   i32.load
@@ -26,47 +25,45 @@
   i32.load
   i32.const 2
   i32.shr_u
-  i32.lt_u
-  if (result i32)
-   get_local $0
-   i32.load offset=8
-  else   
+  i32.ge_u
+  if
    unreachable
   end
-  tee_local $0
+  i32.const 1
+  get_local $0
+  i32.load offset=8
   i32.load
   tee_local $0
   i32.load
   i32.const 2
   i32.shr_u
-  i32.lt_u
+  i32.ge_u
   if (result i32)
+   unreachable
+  else   
    get_local $0
    i32.const 4
    i32.add
    i32.load offset=8
-  else   
-   unreachable
   end
-  tee_local $0
  )
  (func $std/array-access/stringArrayPropertyAccess (; 2 ;) (type $ii) (param $0 i32) (result i32)
+  (local $1 i32)
   i32.const 0
   get_local $0
   i32.load
-  tee_local $0
+  tee_local $1
   i32.load
   i32.const 2
   i32.shr_u
-  i32.lt_u
+  i32.ge_u
   if (result i32)
-   get_local $0
-   i32.load offset=8
-  else   
    unreachable
+  else   
+   get_local $1
+   i32.load offset=8
+   i32.load
   end
-  tee_local $0
-  i32.load
  )
  (func $~lib/internal/string/compareUnsafe (; 3 ;) (type $FUNCSIG$iiiii) (param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (result i32)
   (local $4 i32)
@@ -76,7 +73,7 @@
   get_local $0
   i32.add
   set_local $1
-  loop $continue|0
+  loop $shape$1$continue
    get_local $3
    if (result i32)
     get_local $1
@@ -89,7 +86,6 @@
    else    
     get_local $3
    end
-   tee_local $0
    if
     get_local $3
     i32.const 1
@@ -103,7 +99,7 @@
     i32.const 2
     i32.add
     set_local $2
-    br $continue|0
+    br $shape$1$continue
    end
   end
   get_local $4
@@ -137,37 +133,36 @@
   i32.add
   get_local $1
   i32.gt_s
-  if
+  if (result i32)
    i32.const 0
-   return
+  else   
+   get_local $0
+   get_local $2
+   i32.const 8
+   get_local $3
+   call $~lib/internal/string/compareUnsafe
+   i32.eqz
   end
-  get_local $0
-  get_local $2
-  i32.const 8
-  get_local $3
-  call $~lib/internal/string/compareUnsafe
-  i32.eqz
  )
  (func $std/array-access/stringArrayMethodCall (; 5 ;) (type $ii) (param $0 i32) (result i32)
+  (local $1 i32)
   i32.const 0
   get_local $0
   i32.load
-  tee_local $0
+  tee_local $1
   i32.load
   i32.const 2
   i32.shr_u
-  i32.lt_u
+  i32.ge_u
   if (result i32)
-   get_local $0
-   i32.load offset=8
-  else   
    unreachable
+  else   
+   get_local $1
+   i32.load offset=8
+   call $~lib/string/String#startsWith
   end
-  tee_local $0
-  call $~lib/string/String#startsWith
  )
  (func $std/array-access/stringArrayArrayPropertyAccess (; 6 ;) (type $ii) (param $0 i32) (result i32)
-  i32.const 1
   i32.const 0
   get_local $0
   i32.load
@@ -175,33 +170,30 @@
   i32.load
   i32.const 2
   i32.shr_u
-  i32.lt_u
-  if (result i32)
-   get_local $0
-   i32.load offset=8
-  else   
+  i32.ge_u
+  if
    unreachable
   end
-  tee_local $0
+  i32.const 1
+  get_local $0
+  i32.load offset=8
   i32.load
   tee_local $0
   i32.load
   i32.const 2
   i32.shr_u
-  i32.lt_u
+  i32.ge_u
   if (result i32)
+   unreachable
+  else   
    get_local $0
    i32.const 4
    i32.add
    i32.load offset=8
-  else   
-   unreachable
+   i32.load
   end
-  tee_local $0
-  i32.load
  )
  (func $std/array-access/stringArrayArrayMethodCall (; 7 ;) (type $ii) (param $0 i32) (result i32)
-  i32.const 1
   i32.const 0
   get_local $0
   i32.load
@@ -209,30 +201,28 @@
   i32.load
   i32.const 2
   i32.shr_u
-  i32.lt_u
-  if (result i32)
-   get_local $0
-   i32.load offset=8
-  else   
+  i32.ge_u
+  if
    unreachable
   end
-  tee_local $0
+  i32.const 1
+  get_local $0
+  i32.load offset=8
   i32.load
   tee_local $0
   i32.load
   i32.const 2
   i32.shr_u
-  i32.lt_u
+  i32.ge_u
   if (result i32)
+   unreachable
+  else   
    get_local $0
    i32.const 4
    i32.add
    i32.load offset=8
-  else   
-   unreachable
+   call $~lib/string/String#startsWith
   end
-  tee_local $0
-  call $~lib/string/String#startsWith
  )
  (func $null (; 8 ;) (type $v)
   nop

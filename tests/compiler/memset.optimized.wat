@@ -78,17 +78,13 @@
    i32.const 8
    i32.le_u
    br_if $folding-inner0
-   get_local $2
    i32.const 0
    get_local $3
    i32.sub
    i32.const 3
    i32.and
    tee_local $4
-   i32.sub
-   set_local $2
    get_local $3
-   get_local $4
    i32.add
    tee_local $0
    get_local $1
@@ -99,6 +95,8 @@
    tee_local $1
    i32.store
    get_local $2
+   get_local $4
+   i32.sub
    i32.const -4
    i32.and
    tee_local $2
@@ -203,7 +201,7 @@
    i64.shl
    i64.or
    set_local $5
-   loop $continue|0
+   loop $shape$19$continue
     get_local $2
     i32.const 32
     i32.ge_u
@@ -234,7 +232,7 @@
      i32.const 32
      i32.add
      set_local $0
-     br $continue|0
+     br $shape$19$continue
     end
    end
    get_local $3

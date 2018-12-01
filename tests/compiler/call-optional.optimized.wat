@@ -13,19 +13,20 @@
  (export "table" (table $0))
  (start $start)
  (func $call-optional/opt|trampoline (; 1 ;) (type $iiii) (param $0 i32) (param $1 i32) (param $2 i32) (result i32)
-  block $2of2
-   block $1of2
-    block $0of2
-     block $outOfRange
+  block $block$2$break
+   block $block$3$break
+    block $switch$1$default
+     block $switch$1$case$5
       get_global $~argc
       i32.const 1
       i32.sub
-      br_table $0of2 $1of2 $2of2 $outOfRange
+      br_table $switch$1$case$5 $block$3$break $block$2$break $switch$1$default
      end
-     unreachable
+     i32.const -1
+     set_local $1
+     br $block$3$break
     end
-    i32.const -1
-    set_local $1
+    unreachable
    end
    i32.const -2
    set_local $2
@@ -41,19 +42,20 @@
   (local $1 i32)
   i32.const 1
   set_global $~argc
-  block $2of2
-   block $1of2
-    block $0of2
-     block $outOfRange
+  block $block$3$break
+   block $block$4$break
+    block $switch$1$default
+     block $switch$1$case$6
       get_global $~argc
       i32.const 1
       i32.sub
-      br_table $0of2 $1of2 $2of2 $outOfRange
+      br_table $switch$1$case$6 $block$4$break $block$3$break $switch$1$default
      end
-     unreachable
+     i32.const -1
+     set_local $0
+     br $block$4$break
     end
-    i32.const -1
-    set_local $0
+    unreachable
    end
    i32.const -2
    set_local $1
@@ -77,19 +79,20 @@
   set_local $0
   i32.const 0
   set_local $1
-  block $2of21
-   block $1of22
-    block $0of23
-     block $outOfRange4
+  block $block$19$break
+   block $block$20$break
+    block $switch$17$default
+     block $switch$17$case$22
       get_global $~argc
       i32.const 1
       i32.sub
-      br_table $0of23 $1of22 $2of21 $outOfRange4
+      br_table $switch$17$case$22 $block$20$break $block$19$break $switch$17$default
      end
-     unreachable
+     i32.const -1
+     set_local $0
+     br $block$20$break
     end
-    i32.const -1
-    set_local $0
+    unreachable
    end
    i32.const -2
    set_local $1

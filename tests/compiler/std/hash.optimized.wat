@@ -16,35 +16,34 @@
   (local $2 i32)
   (local $3 i32)
   i32.const -2128831035
-  set_local $2
+  set_local $1
   get_local $0
   i32.load
   i32.const 1
   i32.shl
   set_local $3
-  loop $repeat|0
-   block $break|0
-    get_local $1
-    get_local $3
-    i32.ge_u
-    br_if $break|0
+  loop $shape$1$continue
+   get_local $2
+   get_local $3
+   i32.lt_u
+   if
     get_local $0
-    get_local $1
+    get_local $2
     i32.add
     i32.load8_u offset=4
-    get_local $2
+    get_local $1
     i32.xor
     i32.const 16777619
     i32.mul
-    set_local $2
-    get_local $1
+    set_local $1
+    get_local $2
     i32.const 1
     i32.add
-    set_local $1
-    br $repeat|0
+    set_local $2
+    br $shape$1$continue
    end
   end
-  get_local $2
+  get_local $1
  )
  (func $~lib/internal/hash/hash32 (; 1 ;) (type $ii) (param $0 i32) (result i32)
   get_local $0
