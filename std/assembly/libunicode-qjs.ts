@@ -210,3 +210,11 @@ export const case_conv_table1: Array<u32> = [
     0x8c602001, 0xb7202031, 0xb7302001, 0xf4802231,
     0xf4912201,
 ];
+
+
+export function cr_init(cr: CharRange, void *mem_opaque, DynBufReallocFunc *realloc_func): void {
+    cr->len = cr->size = 0;
+    cr->points = NULL;
+    cr->mem_opaque = mem_opaque;
+    cr->realloc_func = realloc_func ? realloc_func : cr_default_realloc;
+}

@@ -159,28 +159,37 @@ const char_range_table: Array<Array<u16>> = [
   char_range_w
 ];
 
-// TODO: CLean up this function, was working on the REParseState
-function cr_init_char_range(REParseState *s, CharRange *cr, uint32_t c): i32 {
-  boolean invert;
-  const uint16_t *c_pt;
-  int len, i;
+// TODO: Clean up this function, was working on the REParseState
+function cr_init_char_range(s: REParseState, cr: CharRange, c: u32): i32 {
+  let invert: boolean = false;
+  // TODO: Going to make this not a pointer?
+  let c_pt: usize = 0;// const uint16_t *c_pt;
+  let len: i32;
+  let i: i32 = 0;
 
   invert = c & 1;
   c_pt = char_range_table[c >> 1];
-  len = *c_pt++;
+  len = c_pt++;
   cr_init(cr, s->mem_opaque, lre_realloc);
+
+  let failed: boolean = false;
   for(i = 0; i < len * 2; i++) {
-    if (cr_add_point(cr, c_pt[i]))
-      goto fail;
+    if (cr_add_point(cr, c_pt[i])) {
+      failed = true;
+      // Break out of the loop
+      i = len * 2;
+    }
   }
-  if (invert) {
-    if (cr_invert(cr))
-      goto fail;
+  if (invert && !failed) {
+    if (cr_invert(cr)) {
+      failed = true;
+    }
+  }
+  if (failed) {
+    cr_free(cr);
+    return -1;
   }
   return 0;
-  fail:
-    cr_free(cr);
-  return -1;
 }
 
 export class RegExp {
