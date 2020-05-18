@@ -1,197 +1,4 @@
-import {
-  LRE_CC_RES_LEN_MAX,
-  lre_case_conv,
-  case_conv_table1
-} from "./libunicode-qjs";
-
-
-enum REOPCodeEnum {
-  // #define DEF(id, size) REOP_ ## id,
-  // #include "libregexp-opcode.h"
-  // #undef DEF
-  REOP_COUNT,
-}
-
-const CAPTURE_COUNT_MAX = 255;
-const STACK_SIZE_MAX = 255;
-
-/* unicode code points */
-const CP_LS = 0x2028;
-const CP_PS = 0x2029;
-
-const TMP_BUF_SIZE = 128;
-
-type DynBuf = Array<u8>;
-
-class REParseState {
-  byte_code: DynBuf;
-  buf_ptr: u32; // const uint8_t *buf_ptr;
-  buf_end: u32; // const uint8_t *buf_end;
-  buf_start: u32; // const uint8_t *buf_start;
-  re_flags: i32; // int re_flags;
-  is_utf16: boolean; // BOOL is_utf16;
-  ignore_case: boolean; // BOOL ignore_case;
-  dotall: boolean; // BOOL dotall;
-  capture_count: i32; // int capture_count;
-  total_capture_count: i32; // int total_capture_count; /* -1 = not computed yet */
-  has_named_captures: i32; // int has_named_captures; /* -1 = don't know, 0 = no, 1 = yes */
-  mem_opaque: u32; // void *mem_opaque;
-  group_names: DynBuf; // DynBuf group_names;
-  /*
-  union {
-    char error_msg[TMP_BUF_SIZE];
-    char tmp_buf[TMP_BUF_SIZE];
-  } u;
-  */
-}
-
-function is_digit(charCode: i32): boolean {
-  return charCode >= "0".charCodeAt(0) && charCode <= "9".charCodeAt(0); 
-}
-
-// dbuf_insert : Seems to just resize a buffer
-
-function lre_canonicalize(c: u32, isUtf16: boolean): u32 {
-  let res = new Array<u32>(LRE_CC_RES_LEN_MAX);
-  let len = 0;
-
-  if (isUtf16) {
-    if (c < 128) {
-      if (c >= "A".charCodeAt(0) && c <= "Z".charCodeAt(0)) {
-        c = c - "A".charCodeAt(0) + "a".charCodeAt(0);
-      }
-    } else {
-      lre_case_conv(res, c, 2);
-      c = res[0];
-    }
-  } else {
-    if (c < 128) {
-      if (c >= 'a'.charCodeAt(0) && c <= 'z'.charCodeAt(0)) {
-        c = c - 'a'.charCodeAt(0) + 'A'.charCodeAt(0);
-      }
-    } else {
-      /* legacy regexp: to upper case if single char >= 128 */
-      len = lre_case_conv(res, c, FALSE);
-      if (len == 1 && res[0] >= 128)
-        c = res[0];
-    }
-  }
-  return c;
-}
-
-const char_range_d: Array<u16> = [
-  1,
-  0x0030, 
-  0x0039 + 1
-];
-
-/* code point ranges for Zs,Zl or Zp property */
-const uint16_t char_range_s: Array<u16> = [
-  10,
-  0x0009, 0x000D + 1,
-  0x0020, 0x0020 + 1,
-  0x00A0, 0x00A0 + 1,
-  0x1680, 0x1680 + 1,
-  0x2000, 0x200A + 1,
-  /* 2028;LINE SEPARATOR;Zl;0;WS;;;;;N;;;;; */
-  /* 2029;PARAGRAPH SEPARATOR;Zp;0;B;;;;;N;;;;; */
-  0x2028, 0x2029 + 1,
-  0x202F, 0x202F + 1,
-  0x205F, 0x205F + 1,
-  0x3000, 0x3000 + 1,
-  /* FEFF;ZERO WIDTH NO-BREAK SPACE;Cf;0;BN;;;;;N;BYTE ORDER MARK;;;; */
-  0xFEFF, 0xFEFF + 1,
-];
-
-function lre_is_space(c: i32): boolean {
-  let i: i32 = 0;
-  let n: i32 = 0;
-  let low: i32 = 0;
-  let high: i32 = 0;
-
-  n = (char_range_s.length - 1) / 2;
-  for (i = 0; i < n; i++) {
-    low = char_range_s[2 * i + 1];
-    if (c < low) {
-      return false;
-    }
-    high = char_range_s[2 * i + 2];
-    if (c < high) {
-      return true;
-    }
-  }
-  return false;
-}
-
-const lre_id_start_table_ascii: Array<u32> = [
-  /* $ A-Z _ a-z */
-  0x00000000, 0x00000010, 0x87FFFFFE, 0x07FFFFFE
-];
-
-const lre_id_continue_table_ascii: Array<u32> = [
-  /* $ 0-9 A-Z _ a-z */
-  0x00000000, 0x03FF0010, 0x87FFFFFE, 0x07FFFFFE
-];
-
-
-const char_range_w: Array<u16> = [
-  4,
-  0x0030, 0x0039 + 1,
-  0x0041, 0x005A + 1,
-  0x005F, 0x005F + 1,
-  0x0061, 0x007A + 1,
-];
-
-const CLASS_RANGE_BASE = 0x40000000
-
-enum CharRangeEnum {
-  CHAR_RANGE_d,
-  CHAR_RANGE_D,
-  CHAR_RANGE_s,
-  CHAR_RANGE_S,
-  CHAR_RANGE_w,
-  CHAR_RANGE_W,
-};
-
-const char_range_table: Array<Array<u16>> = [
-  char_range_d,
-  char_range_s,
-  char_range_w
-];
-
-// TODO: Clean up this function, was working on the REParseState
-function cr_init_char_range(s: REParseState, cr: CharRange, c: u32): i32 {
-  let invert: boolean = false;
-  // TODO: Going to make this not a pointer?
-  let c_pt: usize = 0;// const uint16_t *c_pt;
-  let len: i32;
-  let i: i32 = 0;
-
-  invert = c & 1;
-  c_pt = char_range_table[c >> 1];
-  len = c_pt++;
-  cr_init(cr, s->mem_opaque, lre_realloc);
-
-  let failed: boolean = false;
-  for(i = 0; i < len * 2; i++) {
-    if (cr_add_point(cr, c_pt[i])) {
-      failed = true;
-      // Break out of the loop
-      i = len * 2;
-    }
-  }
-  if (invert && !failed) {
-    if (cr_invert(cr)) {
-      failed = true;
-    }
-  }
-  if (failed) {
-    cr_free(cr);
-    return -1;
-  }
-  return 0;
-}
-
+// AssemblyScript
 export class RegExp {
 
   // @binding(CALL_NEW, [ STRING, STRING], OBJECT_HANDLE)
@@ -203,4 +10,136 @@ export class RegExp {
   // @binding(CALL_THIS, [], STRING)
   toString(): string { throw new Error("unreachable"); }
 
+}
+
+// libregexp from QuickJS
+
+const CAPTURE_COUNT_MAX = 255;
+const STACK_SIZE_MAX = 255;
+
+// This main is meant to be used for testing the regex itself,
+// But would be good to have here to understand how everything works
+// Since it seems this is written in c-style OOP. Things are hard to follow
+// And a lot of the code would be better off written by following the flow of execution
+// Rather than trying to port unit by unit
+//
+// argv[0] = the command name
+// argv[1] = the actual regex
+// argv[2] = the string be are testing on the regex
+function main(argc: i32, argv: Array<string>): i32 {
+  // int len, ret, i;
+  let len: i32 = 0;
+  let ret: i32 = 0;
+  let i: i32 = 0;
+
+  // bc = bytecode?
+  let bc: u32 = 0; // uint8_t *bc;
+  let error_msg: Array<u8> = new Array<u8>(64);// char error_msg[64];
+  let capture: Uint8Array = new Uint8Array(); // uint8_t *capture[CAPTURE_COUNT_MAX * 2];
+  let input: string = ""; // const char *input;
+  // int input_len, capture_count;
+  let input_len: i32 = 0;
+  let capture_count: i32 = 0;
+
+  /*
+  if (argc < 3) {
+    printf("usage: %s regexp input\n", argv[0]);
+    exit(1);
+  }
+  */
+
+  bc = lre_compile(&len, error_msg, sizeof(error_msg), argv[1],
+                   strlen(argv[1]), 0, NULL);
+
+  if (bc == 0 /*!bc*/) {
+    // fprintf(stderr, "error: %s\n", error_msg);
+    // exit(1);
+
+    throw new Error("Error lre_compile!")
+  }
+
+  input = argv[2];
+  input_len = input.length;
+
+  ret = lre_exec(capture, bc, input, 0, input_len, 0, NULL);
+
+  // printf("ret=%d\n", ret);
+
+  if (ret == 1) {
+    capture_count = lre_get_capture_count(bc);
+    for(i = 0; i < 2 * capture_count; i++) {
+      let ptr: usize = 0; // uint8_t *ptr;
+      ptr = capture[i];
+      // printf("%d: ", i);
+      if (!ptr) {
+        // printf("<nil>");
+      }
+      else {
+        // printf("%u", (int)(ptr - (uint8_t *)input));
+      }
+      // printf("\n");
+    }
+  }
+  return 0;
+}
+
+class REParseState {
+  byte_code: DynBuf;
+  buf: ArrayBuffer;
+  re_flags: i32; // int re_flags;
+  is_utf16: boolean; // BOOL is_utf16;
+  ignore_case: boolean; // BOOL ignore_case;
+  dotall: boolean; // BOOL dotall;
+  capture_count: i32; // int capture_count;
+  total_capture_count: i32; // int total_capture_count; /* -1 = not computed yet */
+  has_named_captures: i32; // int has_named_captures; /* -1 = don't know, 0 = no, 1 = yes */
+  mem_opaque: u32; // void *mem_opaque;
+  group_names: DynBuf; // DynBuf group_names;
+  /*
+     union {
+     char error_msg[TMP_BUF_SIZE];
+     char tmp_buf[TMP_BUF_SIZE];
+     } u;
+   */
+  constructor() {
+    
+  }
+}
+
+const LRE_FLAG_GLOBAL: i32 = (1 << 0);
+const LRE_FLAG_IGNORECASE: i32 = (1 << 1);
+const LRE_FLAG_MULTILINE: i32 = (1 << 2);
+const LRE_FLAG_DOTALL: i32 = (1 << 3);
+const LRE_FLAG_UTF16: i32 = (1 << 4);
+const LRE_FLAG_STICKY: i32 = (1 << 5);
+
+/* 'buf' must be a zero terminated UTF-8 string of length buf_len.
+ Return NULL if error and allocate an error message in *perror_msg,
+ otherwise the compiled bytecode and its length in plen.
+*/
+function lre_compile(
+  plen: u32, // int *plen, 
+  error_msg: ArrayBuffer, // char *error_msg, 
+  error_msg_size: i32, // int error_msg_size,
+  buf: ArrayBuffer, // const char *buf, size_t buf_len,
+  re_flags: i32, // int re_flags,
+  opaque: usize //void *opaque
+): u32 {
+  REParseState s = new REParseState(); // REParseState s_s, *s = &s_s;
+  let stack_size: i32 = 0; // int stack_size;
+  let is_sticky: boolean = 0; // BOOL is_sticky;
+
+  s.mem_opaque = opaque;
+  s.buf = buf;
+  s.re_flags = re_flags;
+  s.is_utf16 = ((re_flags & LRE_FLAG_UTF16) != 0);
+  is_sticky = ((re_flags & LRE_FLAG_STICKY) != 0);
+  s.ignore_case = ((re_flags & LRE_FLAG_IGNORECASE) != 0);
+  s.dotall = ((re_flags & LRE_FLAG_DOTALL) != 0);
+  s.capture_count = 1;
+  s.total_capture_count = -1;
+  s.has_named_captures = -1;
+
+
+  // TODO: LINE 1809 in QuickJS
 }
