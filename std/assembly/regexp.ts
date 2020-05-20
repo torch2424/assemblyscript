@@ -113,6 +113,56 @@ const LRE_FLAG_DOTALL: i32 = (1 << 3);
 const LRE_FLAG_UTF16: i32 = (1 << 4);
 const LRE_FLAG_STICKY: i32 = (1 << 5);
 
+function pushUintOnREParseStateByteCode(s: REParseState, val: u32, uintNumBytes: i32) {
+  // dbuf_put_u32(&s->byte_code, val);
+  // TODO: CHeck for endianess of the u32
+  // Going to assume little endian
+  for (let i = 0; i < uintNumBytes; i++) {
+    let byte = val & (0xFF << (8 * i));
+    s.byte_code.push(byte);
+  }
+}
+
+function pushU16OnREParseStateByteCode(s: REParseState, val: u32) {
+  pushUintOnREParseStateByteCode(s, val, 2);
+}
+
+
+function pushU32OnREParseStateByteCode(s: REParseState, val: u32) {
+  pushUintOnREParseStateByteCode(s, val, 4);
+}
+
+function re_emit_op(s: REParseState, op: u8) {
+  s.byte_code.push(op); // dbuf_putc(&s->byte_code, op);
+}
+
+/* return the offset of the u32 value */
+function re_emit_op_u32(s: REParseState, op: i32, val: u32): i32 {
+  let pos: i32 = 0;
+  s.byte_code.push(op); // dbuf_putc(&s->byte_code, op);
+  pos = s.byte_code.length;
+  pushU32OnREParseStateByteCode(s, val); // dbuf_put_u32(&s->byte_code, val);
+  return pos;
+}
+
+function re_emit_goto(s: REParseState, op: u8, val: u32): i32 {
+  let pos: i32 = 0;
+  s.byte_code.push(op); // dbuf_putc(&s->byte_code, op);
+  pos = s.byte_code.length;
+  pushU32OnREParseStateByteCode(s, val - (pos + 4)); // dbuf_put_u32(&s->byte_code, val - (pos + 4));
+  return pos;
+}
+
+function re_emit_op_u8(s: REParseState, op: u8, val: u8): void {
+  s.byte_code.push(op); // dbuf_putc(&s->byte_code, op);
+  s.byte_code.push(val); // dbuf_putc(&s->byte_code, val);
+}
+
+function re_emit_op_u16(s: REParseState, op: i32, val: u16): void {
+  s.byte_code.push(op); // dbuf_putc(&s->byte_code, op);
+  pushU16OnREParseStateByteCode(s, val); // dbuf_put_u16(&s->byte_code, val);
+}
+
 /* 'buf' must be a zero terminated UTF-8 string of length buf_len.
  Return NULL if error and allocate an error message in *perror_msg,
  otherwise the compiled bytecode and its length in plen.
@@ -127,7 +177,7 @@ function lre_compile(
 ): u32 {
   REParseState s = new REParseState(); // REParseState s_s, *s = &s_s;
   let stack_size: i32 = 0; // int stack_size;
-  let is_sticky: boolean = 0; // BOOL is_sticky;
+  let is_sticky: boolean = false; // BOOL is_sticky;
 
   s.mem_opaque = opaque;
   s.buf = buf;
@@ -140,6 +190,27 @@ function lre_compile(
   s.total_capture_count = -1;
   s.has_named_captures = -1;
 
+  // dbuf_init2(&s->byte_code, opaque, lre_realloc);
+  s.byte_code = new Array<u8>();
+  s.opaque = opaque
+  // dbuf_init2(&s->group_names, opaque, lre_realloc);
+  s.byte_code = new Array<u8>();
+  // opaque already set
 
-  // TODO: LINE 1809 in QuickJS
+  s.byte_code.push(re_flags); // dbuf_putc(&s->byte_code, re_flags); /* first element is the flags */
+  s.byte_code.push(0); // dbuf_putc(&s->byte_code, 0); /* second element is the number of captures */
+  s.byte_code.push(0); // dbuf_putc(&s->byte_code, 0); /* stack size */
+  s.byte_code.push(0); // dbuf_put_u32(&s->byte_code, 0); /* bytecode length */
+
+  if (!is_sticky) {
+    /* iterate thru all positions (about the same as .*?( ... ) )
+       .  We do it without an explicit loop so that lock step
+       thread execution will be possible in an optimized
+       implementation */
+
+    // TODO: Figure out how we are going to pass the REOP_*
+    re_emit_op_u32(s, REOP_split_goto_first, 1 + 5);
+    re_emit_op(s, REOP_any);
+    re_emit_op_u32(s, REOP_goto, -(5 + 1 + 5));
+  }
 }
