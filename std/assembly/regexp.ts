@@ -83,9 +83,74 @@ function main(argc: i32, argv: Array<string>): i32 {
   return 0;
 }
 
+/* 'buf' must be a zero terminated UTF-8 string of length buf_len.
+   Return NULL if error and allocate an error message in *perror_msg,
+   otherwise the compiled bytecode and its length in plen.
+ */
+function lre_compile(
+  plen: u32, // int *plen, 
+  error_msg: ArrayBuffer, // char *error_msg, 
+  error_msg_size: i32, // int error_msg_size,
+  regexp: string, // const char *buf, size_t buf_len,
+  re_flags: i32, // int re_flags,
+  opaque: usize //void *opaque
+): u32 {
+  REParseState s = new REParseState(); // REParseState s_s, *s = &s_s;
+  let stack_size: i32 = 0; // int stack_size;
+  let is_sticky: boolean = false; // BOOL is_sticky;
+
+  s.mem_opaque = opaque;
+  s.regexp = regexp;
+  s.regexp_pos = 0;
+  s.re_flags = re_flags;
+  s.is_utf16 = ((re_flags & LRE_FLAG_UTF16) != 0);
+  is_sticky = ((re_flags & LRE_FLAG_STICKY) != 0);
+  s.ignore_case = ((re_flags & LRE_FLAG_IGNORECASE) != 0);
+  s.dotall = ((re_flags & LRE_FLAG_DOTALL) != 0);
+  s.capture_count = 1;
+  s.total_capture_count = -1;
+  s.has_named_captures = -1;
+
+  // dbuf_init2(&s->byte_code, opaque, lre_realloc);
+  s.byte_code = new Array<u8>();
+  s.opaque = opaque
+  // dbuf_init2(&s->group_names, opaque, lre_realloc);
+  s.byte_code = new Array<u8>();
+  // opaque already set
+
+  s.byte_code.push(re_flags); // dbuf_putc(&s->byte_code, re_flags); /* first element is the flags */
+  s.byte_code.push(0); // dbuf_putc(&s->byte_code, 0); /* second element is the number of captures */
+  s.byte_code.push(0); // dbuf_putc(&s->byte_code, 0); /* stack size */
+  s.byte_code.push(0); // dbuf_put_u32(&s->byte_code, 0); /* bytecode length */
+
+  if (!is_sticky) {
+    /* iterate thru all positions (about the same as .*?( ... ) )
+       .  We do it without an explicit loop so that lock step
+       thread execution will be possible in an optimized
+       implementation */
+
+    re_emit_op_u32(s, REOPCodeEnum.REOP_split_goto_first, 1 + 5);
+    re_emit_op(s, REOPCodeEnum.REOP_any);
+    re_emit_op_u32(s, REOPCodeEnum.REOP_goto, -(5 + 1 + 5));
+  }
+  re_emit_op_u8(s, REOPCodeEnum.REOP_save_start, 0);
+
+  if (re_parse_disjunction(s, FALSE)) {
+    let errorMessage: string = 'TODO';
+    throw new Error(errorMessage);
+  }
+
+
+}
+
 class REParseState {
-  byte_code: DynBuf;
-  buf: ArrayBuffer;
+  byte_code: Array<u8>; // DynBuf byte_code
+  // Using a string instead of a buffer for the regex
+  // const uint8_t *buf_ptr;
+  // const uint8_t *buf_end;
+  // const uint8_t *buf_start;
+  regexp: string;
+  regexp_pos: usize;
   re_flags: i32; // int re_flags;
   is_utf16: boolean; // BOOL is_utf16;
   ignore_case: boolean; // BOOL ignore_case;
@@ -94,7 +159,7 @@ class REParseState {
   total_capture_count: i32; // int total_capture_count; /* -1 = not computed yet */
   has_named_captures: i32; // int has_named_captures; /* -1 = don't know, 0 = no, 1 = yes */
   mem_opaque: u32; // void *mem_opaque;
-  group_names: DynBuf; // DynBuf group_names;
+  group_names: Array<u8>; // DynBuf group_names;
   /*
      union {
      char error_msg[TMP_BUF_SIZE];
@@ -163,54 +228,101 @@ function re_emit_op_u16(s: REParseState, op: i32, val: u16): void {
   pushU16OnREParseStateByteCode(s, val); // dbuf_put_u16(&s->byte_code, val);
 }
 
-/* 'buf' must be a zero terminated UTF-8 string of length buf_len.
- Return NULL if error and allocate an error message in *perror_msg,
- otherwise the compiled bytecode and its length in plen.
-*/
-function lre_compile(
-  plen: u32, // int *plen, 
-  error_msg: ArrayBuffer, // char *error_msg, 
-  error_msg_size: i32, // int error_msg_size,
-  buf: ArrayBuffer, // const char *buf, size_t buf_len,
-  re_flags: i32, // int re_flags,
-  opaque: usize //void *opaque
-): u32 {
-  REParseState s = new REParseState(); // REParseState s_s, *s = &s_s;
-  let stack_size: i32 = 0; // int stack_size;
-  let is_sticky: boolean = false; // BOOL is_sticky;
+// Define the ENUM for all of our opcodes
+// https://github.com/ldarren/QuickJS/blob/45d4a5805a280f1aadb3078f9f15036bf96fd1f0/libregexp.c#L51
+// https://github.com/ldarren/QuickJS/blob/32b15bff82d917511d08c67488ef6eeb9370ee4a/libregexp-opcode.h
+const enum REOPCodeEnum {
+  REOP_invalid,
+  REOP_char,
+  REOP_char32,
+  REOP_dot,
+  REOP_any,
+  REOP_line_start,
+  REOP_line_end,
+  REOP_goto,
+  REOP_split_goto_first,
+  REOP_split_next_first,
+  REOP_match,
+  REOP_save_start,
+  REOP_save_end,
+  REOP_save_rest,
+  REOP_loop,
+  REOP_push_i32,
+  REOP_drop,
+  REOP_word_boundary,
+  REOP_not_word_boundary,
+  REOP_back_reference,
+  REOP_backward_back_reference,
+  REOP_range,
+  REOP_range32,
+  REOP_lookahead,
+  REOP_negative_lookahead,
+  REOP_push_char_pos,
+  REOP_bne_char_pos,
+  REOP_prev,
+  REOP_simple_greedy_quant
+}
 
-  s.mem_opaque = opaque;
-  s.buf = buf;
-  s.re_flags = re_flags;
-  s.is_utf16 = ((re_flags & LRE_FLAG_UTF16) != 0);
-  is_sticky = ((re_flags & LRE_FLAG_STICKY) != 0);
-  s.ignore_case = ((re_flags & LRE_FLAG_IGNORECASE) != 0);
-  s.dotall = ((re_flags & LRE_FLAG_DOTALL) != 0);
-  s.capture_count = 1;
-  s.total_capture_count = -1;
-  s.has_named_captures = -1;
+function re_parse_disjunction(s: REParseState, is_backward_dir: boolean): i32 {
+  let start: i32 = 0;
+  let len: i32 = 0;
+  let pos: i32 = 0;
 
-  // dbuf_init2(&s->byte_code, opaque, lre_realloc);
-  s.byte_code = new Array<u8>();
-  s.opaque = opaque
-  // dbuf_init2(&s->group_names, opaque, lre_realloc);
-  s.byte_code = new Array<u8>();
-  // opaque already set
+  start = s.byte_code.length;
+  if (re_parse_alternative(s, is_backward_dir)) {
+    return -1;
+  }
 
-  s.byte_code.push(re_flags); // dbuf_putc(&s->byte_code, re_flags); /* first element is the flags */
-  s.byte_code.push(0); // dbuf_putc(&s->byte_code, 0); /* second element is the number of captures */
-  s.byte_code.push(0); // dbuf_putc(&s->byte_code, 0); /* stack size */
-  s.byte_code.push(0); // dbuf_put_u32(&s->byte_code, 0); /* bytecode length */
+  // TODO:
 
-  if (!is_sticky) {
-    /* iterate thru all positions (about the same as .*?( ... ) )
-       .  We do it without an explicit loop so that lock step
-       thread execution will be possible in an optimized
-       implementation */
+  return 0;
+}
 
-    // TODO: Figure out how we are going to pass the REOP_*
-    re_emit_op_u32(s, REOP_split_goto_first, 1 + 5);
-    re_emit_op(s, REOP_any);
-    re_emit_op_u32(s, REOP_goto, -(5 + 1 + 5));
+function re_parse_alternative(s: REParseState, is_backward_dir: boolean): i32 {
+  let pos: usize = 0;
+  let ret: i32 = 0;
+  let start: usize = 0; 
+  let term_start: usize = 0; 
+  let end: usize = 0; 
+  let term_size: usize = 0;
+
+  start = s.byte_code.length; // start = s->byte_code.size;
+  while(true) {
+    pos = s.regexp_pos;
+    if (pos >= s.regexp.length) {
+      return;
+    }
+
+    if (s.charAt(pos) == '|' || s.charAt(pos) == ')') {
+      break;
+    }
+
+    term_start = s.byte_code.length;
+    ret = re_parse_term(s, is_backward_dir);
+
+    // TODO:
   }
 }
+
+function re_parse_term(s: REParseState, is_backward_dir: boolean): i32 {
+  let p: usize = 0; // uint8_t *p;
+
+  // int c, last_atom_start, quant_min, quant_max, last_capture_count;
+  // BOOL greedy, add_zero_advance_check, is_neg, is_backward_lookahead;
+  // CharRange cr_s, *cr = &cr_s;
+  let c = 0;
+  let last_atom_start = 0;
+  let quant_min = 0;
+  let quant_max = 0;
+  let last_capture_count = 0;
+  let greedy: boolean = false;
+  let add_zero_advance_check: boolean = false;
+  let is_neg: boolean = false;
+  let is_backward_lookahead: boolean = false;
+
+  // TODO: CharRange type
+  // https://github.com/ldarren/QuickJS/blob/32b15bff82d917511d08c67488ef6eeb9370ee4a/libunicode.h#L47
+  let cr: CharRange = new CharRange();
+
+}
+
