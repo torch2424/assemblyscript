@@ -231,37 +231,39 @@ function re_emit_op_u16(s: REParseState, op: i32, val: u16): void {
 // Define the ENUM for all of our opcodes
 // https://github.com/ldarren/QuickJS/blob/45d4a5805a280f1aadb3078f9f15036bf96fd1f0/libregexp.c#L51
 // https://github.com/ldarren/QuickJS/blob/32b15bff82d917511d08c67488ef6eeb9370ee4a/libregexp-opcode.h
-const enum REOPCodeEnum {
-  REOP_invalid,
-  REOP_char,
-  REOP_char32,
-  REOP_dot,
-  REOP_any,
-  REOP_line_start,
-  REOP_line_end,
-  REOP_goto,
-  REOP_split_goto_first,
-  REOP_split_next_first,
-  REOP_match,
-  REOP_save_start,
-  REOP_save_end,
-  REOP_save_rest,
-  REOP_loop,
-  REOP_push_i32,
-  REOP_drop,
-  REOP_word_boundary,
-  REOP_not_word_boundary,
-  REOP_back_reference,
-  REOP_backward_back_reference,
-  REOP_range,
-  REOP_range32,
-  REOP_lookahead,
-  REOP_negative_lookahead,
-  REOP_push_char_pos,
-  REOP_bne_char_pos,
-  REOP_prev,
-  REOP_simple_greedy_quant
-}
+// TODO: Make this an enum. Using consts for now as this will make things easier when we start compiling
+// const enum REOPCodeEnum {
+// TODO: Translate these
+const REOP_invalid = 1;
+const REOP_char = 2
+const REOP_char32 = 3;
+const REOP_dot = 4;
+const REOP_any = 5;
+const REOP_line_start = 6;
+const REOP_line_end = 7;
+const REOP_goto = 8;
+const REOP_split_goto_first = 9;
+const REOP_split_next_first = 10;
+const REOP_match = 11;
+const REOP_save_start = 12;
+const REOP_save_end = 13;
+const REOP_save_rest = 14;
+const REOP_loop = 15;
+const REOP_push_i32 = 16;
+const REOP_drop = 17;
+const REOP_word_boundary = 18;
+const REOP_not_word_boundary = 19;
+const REOP_back_reference = 20;
+const REOP_backward_back_reference = 21;
+const REOP_range = 22;
+const REOP_range32 = 23;
+const REOP_lookahead = 24;
+const REOP_negative_lookahead = 25;
+const REOP_push_char_pos = 26;
+const REOP_bne_char_pos = 27;
+const REOP_prev = 28;
+const REOP_simple_greedy_quant = 29;
+// }
 
 function re_parse_disjunction(s: REParseState, is_backward_dir: boolean): i32 {
   let start: i32 = 0;
@@ -305,7 +307,7 @@ function re_parse_alternative(s: REParseState, is_backward_dir: boolean): i32 {
 }
 
 function re_parse_term(s: REParseState, is_backward_dir: boolean): i32 {
-  let p: usize = 0; // uint8_t *p;
+  let p: string = ""; // uint8_t *p;
 
   // int c, last_atom_start, quant_min, quant_max, last_capture_count;
   // BOOL greedy, add_zero_advance_check, is_neg, is_backward_lookahead;
@@ -320,9 +322,155 @@ function re_parse_term(s: REParseState, is_backward_dir: boolean): i32 {
   let is_neg: boolean = false;
   let is_backward_lookahead: boolean = false;
 
-  // TODO: CharRange type
-  // https://github.com/ldarren/QuickJS/blob/32b15bff82d917511d08c67488ef6eeb9370ee4a/libunicode.h#L47
   let cr: CharRange = new CharRange();
+
+  last_atom_start = -1;
+  last_capture_count = 0;
+
+  p = s.regexp;
+  c = p.charAt(0);
+  switch(c) {
+    case '^': {
+      p = p.slice(1);
+      re_emit_op(s, REOPCodeEnum.REOP_line_start);
+      break;
+    }
+    case '$': {
+      p = p.slice(1);
+      re_emit_op(s, REOPCodeEnum.REOP_line_end);
+      break;
+    }
+    case '.': {
+      p = p.slice(1);
+      last_atom_start = s.byte_code.length;
+      last_capture_count = s.capture_count;
+      if (is_backward_dir) {
+        re_emit_op(s, REOP_prev);
+      }
+      re_emit_op(s, s.dotall ? REOP_any : REOP_dot);
+      if (is_backward_dir) {
+        re_emit_op(s, REOP_prev);
+      }
+      break;
+    }
+    case '{': {
+      if (s->is_utf16) {
+        return re_parse_error(s, "syntax error");
+      } else if (!is_digit(p[1])) {
+        /* Annex B: we accept '{' not followed by digits as a
+           normal atom */
+        // goto parse_class_atom;
+        {
+          /* parse_class_atom: */
+          // TODO: Finish converting this
+          c = get_class_atom(s, cr, p, false);
+          if (c < 0) {
+            return -1;
+          }
+          /* normal_char: */
+          last_atom_start = s->byte_code.size;
+          last_capture_count = s->capture_count;
+          if (is_backward_dir) {
+            re_emit_op(s, REOP_prev);
+          }
+          if (c >= CLASS_RANGE_BASE) {
+            int ret;
+            /* Note: canonicalization is not needed */
+            ret = re_emit_range(s, cr);
+            cr_free(cr);
+            if (ret) {
+              return -1;
+            }
+          } else {
+            if (s->ignore_case) {
+              c = lre_canonicalize(c, s->is_utf16);
+            }
+            if (c <= 0xffff) {
+              re_emit_op_u16(s, REOP_char, c);
+            }
+            else {
+              re_emit_op_u32(s, REOP_char32, c);
+            }
+          }
+          if (is_backward_dir) {
+            re_emit_op(s, REOP_prev);
+          }
+          break;
+        }
+      } else {
+        const uint8_t *p1 = p + 1;
+        /* Annex B: error if it is like a repetition count */
+        parse_digits(&p1, TRUE);
+        if (*p1 == ',') {
+          p1++;
+          if (is_digit(*p1)) {
+            parse_digits(&p1, TRUE);
+          }
+        }
+        if (*p1 != '}') {
+          //TODO: 
+          // goto parse_class_atom;
+        }
+      }
+    }
+    /* fall thru */
+
+    // TODO:
+
+  }
 
 }
 
+class CharRange {
+  len: i32; /* in points, always even */
+  points: Array<usize>; /* points sorted by increasing value */
+
+  constructor() {
+    points = new Array<usize>();
+  }
+}
+
+function re_parse_error(s: REParseState, error: string) {
+  // TODO: Figure out how we want to throw this error
+  throw new Error(error);
+}
+
+/* return -1 if error otherwise the character or a class range
+   (CLASS_RANGE_BASE). In case of class range, 'cr' is
+   initialized. Otherwise, it is ignored. */
+function get_class_atom(s: REParseState, cr: CharRange, /* const uint8_t **pp */ pp: string, inclass: boolean): i32 {
+  let p: string = "";
+  let c: usize = 0;
+  let ret: i32;
+  p = pp;
+  p = s.regexp;
+  c = p.charAt(0);
+  switch(c) {
+    case '\\': {
+      p = p.slice(1, 0);
+      if (p >= s->buf_end) {
+        // goto unexpected_end;
+        throw new Error("unexpected end");
+      }
+
+      c = p.charAt(0);
+      p = p.slice(1, 0);
+
+      switch(c) {
+        case 'd': {
+          c = CHAR_RANGE_d;
+          // goto class_range;
+          {
+            /* class_range: */
+            // TODO: Port cr_init_char_range
+            if (cr_init_char_range(s, cr, c)) {
+              return -1;
+            }
+            c = CLASS_RANGE_BASE;
+            break;
+          }
+        }
+      }
+    }
+  }
+}
