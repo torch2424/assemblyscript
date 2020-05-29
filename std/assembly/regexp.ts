@@ -368,8 +368,8 @@ function re_parse_term(s: REParseState, is_backward_dir: boolean): i32 {
             return -1;
           }
           /* normal_char: */
-          last_atom_start = s->byte_code.size;
-          last_capture_count = s->capture_count;
+          last_atom_start = s.byte_code.length;
+          last_capture_count = s,capture_count;
           if (is_backward_dir) {
             re_emit_op(s, REOP_prev);
           }
@@ -377,13 +377,14 @@ function re_parse_term(s: REParseState, is_backward_dir: boolean): i32 {
             int ret;
             /* Note: canonicalization is not needed */
             ret = re_emit_range(s, cr);
-            cr_free(cr);
+            // Runtime should handle free-ing
+            // cr_free(cr);
             if (ret) {
               return -1;
             }
           } else {
-            if (s->ignore_case) {
-              c = lre_canonicalize(c, s->is_utf16);
+            if (s.ignore_case) {
+              c = lre_canonicalize(c, s.is_utf16);
             }
             if (c <= 0xffff) {
               re_emit_op_u16(s, REOP_char, c);
@@ -398,16 +399,16 @@ function re_parse_term(s: REParseState, is_backward_dir: boolean): i32 {
           break;
         }
       } else {
-        const uint8_t *p1 = p + 1;
+        let p1: string = p.charAt(1);
         /* Annex B: error if it is like a repetition count */
-        parse_digits(&p1, TRUE);
-        if (*p1 == ',') {
-          p1++;
-          if (is_digit(*p1)) {
-            parse_digits(&p1, TRUE);
+        parse_digits(p1, true);
+        if (p1 == ',') {
+          p1 = p.charAt(2);
+          if (is_digit(p1)) {
+            parse_digits(p1, true);
           }
         }
-        if (*p1 != '}') {
+        if (p1 != '}') {
           //TODO: 
           // goto parse_class_atom;
         }
@@ -466,6 +467,7 @@ function get_class_atom(s: REParseState, cr: CharRange, /* const uint8_t **pp */
             if (cr_init_char_range(s, cr, c)) {
               return -1;
             }
+            // TODO: port CLASS_RANGE_BASE
             c = CLASS_RANGE_BASE;
             break;
           }
@@ -473,4 +475,97 @@ function get_class_atom(s: REParseState, cr: CharRange, /* const uint8_t **pp */
       }
     }
   }
+}
+
+function cr_init_char_range(s: REParseState, cr: CharRange, c: u32) {
+  let invert: boolean;
+  let c_pt: usize;
+  let len: i32;
+  let i: i32;
+
+  // TODO:
+  invert = (c & 1) > 0;
+  let char_range_table_index = c >> 1;
+  c_pt = char_range_table[char_range_table_index]; // char_range_table_index was c >> 1
+  len = char_range_table_index;
+
+  // Char range is already constructed
+  // cr_init(cr, s.mem_opaque, lre_realloc);
+
+  for(i = 0; i < len * 2; i++) {
+    if (cr_add_point(cr, c_pt[i])) {
+      // goto fail;
+      // cr_free(cr);
+      return -1;
+    }  
+  }
+  if (invert) {
+    if (cr_invert(cr)) {
+      // goto fail;
+      // cr_free(cr);
+      return -1;
+    }
+  }
+  return 0;
+}
+
+const char_range_table = [
+  char_range_d,
+  char_range_s,
+  char_range_w,
+];
+
+// const enum CharRangeEnum {
+const CHAR_RANGE_d = 0,
+const CHAR_RANGE_D = 1,
+const CHAR_RANGE_s = 2,
+const CHAR_RANGE_S = 3,
+const CHAR_RANGE_w = 4,
+csont CHAR_RANGE_W = 5,
+// }
+
+
+/*
+
+Should just comment out this function, should be in CharRange Constructor
+
+function cr_init(cr: CharRange, mem_opaque: usize, realloc_func: DynBufReallocFunc): void
+{
+  cr->len = cr->size = 0;
+  cr->points = NULL;
+  cr->mem_opaque = mem_opaque;
+  cr->realloc_func = realloc_func ? realloc_func : cr_default_realloc;
+}
+*/
+
+function cr_add_point(cr: CharRange, v: u32): i32 {
+
+  // TODO: Figure out why the len and size are different (I assume it's just for dynamically reallocating the array)
+
+  /*
+  if (cr.len >= cr.size) {
+    if (cr_realloc(cr, cr->len + 1))
+      return -1;
+     // TODO: Figure out why the len and size are different
+  }
+  cr->points[cr->len++] = v;
+  */ 
+
+  cr.points.push(v);
+  return 0;
+}
+
+// TODO: Port this function for cr_init_char_range
+int cr_invert(CharRange *cr)
+{
+  int len;
+  len = cr->len;
+  if (cr_realloc(cr, len + 2))
+    return -1;
+  memmove(cr->points + 1, cr->points, len * sizeof(cr->points[0]));
+  cr->points[0] = 0;
+  cr->points[len + 1] = UINT32_MAX;
+  cr->len = len + 2;
+  cr_compress(cr);
+  return 0;
 }
