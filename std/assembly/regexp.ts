@@ -428,6 +428,20 @@ class CharRange {
 
   constructor() {
     points = new Array<usize>();
+
+    /*
+
+       Should just comment out this function, should be in CharRange Constructor
+
+       function cr_init(cr: CharRange, mem_opaque: usize, realloc_func: DynBufReallocFunc): void
+       {
+       cr->len = cr->size = 0;
+       cr->points = NULL;
+       cr->mem_opaque = mem_opaque;
+       cr->realloc_func = realloc_func ? realloc_func : cr_default_realloc;
+       }
+     */
+
   }
 }
 
@@ -472,6 +486,96 @@ function get_class_atom(s: REParseState, cr: CharRange, /* const uint8_t **pp */
             break;
           }
         }
+        case 'D': {
+          c = CHAR_RANGE_D;
+          // goto class_range;
+          {
+            /* class_range: */
+            // TODO: Port cr_init_char_range
+            if (cr_init_char_range(s, cr, c)) {
+              return -1;
+            }
+            // TODO: port CLASS_RANGE_BASE
+            c = CLASS_RANGE_BASE;
+            break;
+          }
+        }
+        case 's': {
+          c = CHAR_RANGE_s;
+          // goto class_range;
+          {
+            /* class_range: */
+            // TODO: Port cr_init_char_range
+            if (cr_init_char_range(s, cr, c)) {
+              return -1;
+            }
+            // TODO: port CLASS_RANGE_BASE
+            c = CLASS_RANGE_BASE;
+            break;
+          }
+        }
+        case 'S': {
+          c = CHAR_RANGE_S;
+          // goto class_range;
+          {
+            /* class_range: */
+            // TODO: Port cr_init_char_range
+            if (cr_init_char_range(s, cr, c)) {
+              return -1;
+            }
+            // TODO: port CLASS_RANGE_BASE
+            c = CLASS_RANGE_BASE;
+            break;
+          }
+        }
+        case 'w': {
+          c = CHAR_RANGE_w;
+          // goto class_range;
+          {
+            /* class_range: */
+            // TODO: Port cr_init_char_range
+            if (cr_init_char_range(s, cr, c)) {
+              return -1;
+            }
+            // TODO: port CLASS_RANGE_BASE
+            c = CLASS_RANGE_BASE;
+            break;
+          }
+        }
+        case 'W': {
+          c = CHAR_RANGE_W;
+          // goto class_range;
+          {
+            /* class_range: */
+            // TODO: Port cr_init_char_range
+            if (cr_init_char_range(s, cr, c)) {
+              return -1;
+            }
+            // TODO: port CLASS_RANGE_BASE
+            c = CLASS_RANGE_BASE;
+            break;
+          }
+        }
+        case 'c': {
+          c = *p;
+          if ((c >= 'a' && c <= 'z') ||
+              (c >= 'A' && c <= 'Z') ||
+                (((c >= '0' && c <= '9') || c == '_') &&
+                 inclass && !s->is_utf16)) {   /* Annex B.1.4 */
+                   c &= 0x1f;
+                 p++;
+          } else if (s->is_utf16) {
+            goto invalid_escape;
+          } else {
+            /* otherwise return '\' and 'c' */
+            p--;
+            c = '\\';
+          }
+          break;
+        }
+
+        // TODO:
+
       }
     }
   }
@@ -495,15 +599,19 @@ function cr_init_char_range(s: REParseState, cr: CharRange, c: u32) {
   for(i = 0; i < len * 2; i++) {
     if (cr_add_point(cr, c_pt[i])) {
       // goto fail;
-      // cr_free(cr);
-      return -1;
+      {
+        // cr_free(cr);
+        return -1;
+      }
     }  
   }
   if (invert) {
     if (cr_invert(cr)) {
       // goto fail;
-      // cr_free(cr);
-      return -1;
+      {
+        // cr_free(cr);
+        return -1;
+      }
     }
   }
   return 0;
@@ -521,22 +629,12 @@ const CHAR_RANGE_D = 1,
 const CHAR_RANGE_s = 2,
 const CHAR_RANGE_S = 3,
 const CHAR_RANGE_w = 4,
-csont CHAR_RANGE_W = 5,
+const CHAR_RANGE_W = 5,
 // }
 
 
-/*
 
-Should just comment out this function, should be in CharRange Constructor
-
-function cr_init(cr: CharRange, mem_opaque: usize, realloc_func: DynBufReallocFunc): void
-{
-  cr->len = cr->size = 0;
-  cr->points = NULL;
-  cr->mem_opaque = mem_opaque;
-  cr->realloc_func = realloc_func ? realloc_func : cr_default_realloc;
-}
-*/
+// cr_init is in the CharRange constructor
 
 function cr_add_point(cr: CharRange, v: u32): i32 {
 
@@ -556,16 +654,84 @@ function cr_add_point(cr: CharRange, v: u32): i32 {
 }
 
 // TODO: Port this function for cr_init_char_range
-int cr_invert(CharRange *cr)
-{
-  int len;
-  len = cr->len;
-  if (cr_realloc(cr, len + 2))
+function cr_invert(cr: CharRange): i32 {
+  let len: i32;
+  len = cr.len;
+  if (cr_realloc(cr, len + 2)) {
     return -1;
+  }
+
+  // I think this moves all of the bytes in points over by one
+  // Sets the first point to zero
+  // And then sets the last byte to UINT32_Max? 
+  /*
   memmove(cr->points + 1, cr->points, len * sizeof(cr->points[0]));
   cr->points[0] = 0;
   cr->points[len + 1] = UINT32_MAX;
   cr->len = len + 2;
+  */
+ cr.points.unshift(0);
+ cr.points[cr.points.length] = UINT32_MAX;
   cr_compress(cr);
   return 0;
+}
+
+
+// This function isn't needed, as it seems to just resize the buffer for CharRange.
+// So just make it a noop
+function cr_realloc(cr: CharRange, size: i32): boolean {
+  /*
+  int new_size;
+  uint32_t *new_buf;
+
+  if (size > cr->size) {
+    new_size = max_int(size, cr->size * 3 / 2);
+    new_buf = cr->realloc_func(cr->mem_opaque, cr->points,
+                               new_size * sizeof(cr->points[0]));
+    if (!new_buf)
+      return -1;
+    cr->points = new_buf;
+    cr->size = new_size;
+  }
+  */
+  return false;
+}
+
+
+/* merge consecutive intervals and remove empty intervals */
+function cr_compress(cr: CharRange): void {
+  // int i, j, k, len;
+  let i: i32;
+  let j: i32;
+  let k: i32;
+
+  // uint32_t *pt;
+  // pt = cr->points;
+  // len = cr->len;
+  i = 0;
+  j = 0;
+  k = 0;
+  while ((i + 1) < cr.points.length) {
+    if (cr.points[i] == cr.points[i + 1]) {
+      /* empty interval */
+      i += 2;
+    } else {
+      j = i;
+
+      // while ((j + 3) < len && pt[j + 1] == pt[j + 2])
+      while ((j + 3) < cr.points.length && cr.points[j + 1] == cr.points[j + 2]) {
+        j += 2;
+      }
+
+      /* just copy */
+      // pt[k] = pt[i];
+      cr.points[k] = cr.points[i];
+      // pt[k + 1] = pt[j + 1];
+      cr.points[k + 1] = cr.points[j + 1];
+
+      k += 2;
+      i = j + 2;
+    }
+  }
+  // cr->len = k;
 }
