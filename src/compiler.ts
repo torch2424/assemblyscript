@@ -400,8 +400,43 @@ export class Compiler extends DiagnosticEmitter {
     module.setFeatures(featureFlags);
   }
 
-  /** Performs compilation of the underlying {@link Program} to a {@link Module}. */
   compile(): Module {
+    let module = this._compile();
+
+    //torch2424
+
+    console.log('Original Module!');
+    console.log(module);
+    console.log(module.toText());
+
+    // Get our libregexp module as a binary
+    const fs = require('fs');
+    const binary = new Uint8Array(fs.readFileSync('../quickjs-wasi/libregexp.wasm'));
+    console.log(binary);
+
+    // Read our module with binaryen js
+    const binaryen = require('binaryen');
+    const regexModule = binaryen.readBinary(binary);
+    console.log(regexModule);
+    console.log(regexModule.getNumExports());
+    for (let i = 0; i < regexModule.getNumExports(); i++) {
+      console.log(binaryen.getExportInfo(regexModule.getExportByIndex(i)));
+    }
+
+    console.log(regexModule.getNumFunctions());
+    for (let i = 0; i < regexModule.getNumFunctions(); i++) {
+      console.log(binaryen.getFunctionInfo(regexModule.getFunctionByIndex(i)));
+    }
+
+   // Create the module with the AS C Module Wrapper
+   let regexAsModule = Module.createFrom(binary);
+   console.log(regexAsModule);
+
+    return module;
+  }
+
+  /** Performs compilation of the underlying {@link Program} to a {@link Module}. */
+  _compile(): Module {
     var options = this.options;
     var module = this.module;
     var program = this.program;
