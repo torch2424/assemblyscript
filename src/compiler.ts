@@ -411,7 +411,7 @@ export class Compiler extends DiagnosticEmitter {
 
     // Get our libregexp module as a binary
     const fs = require('fs');
-    const binary = new Uint8Array(fs.readFileSync('../quickjs-wasi/libregexp.wasm'));
+    const binary = new Uint8Array(fs.readFileSync('../quickjs-wasi/as-libregexp.wasm'));
     console.log(binary);
 
     // Read our module with binaryen js
@@ -424,13 +424,20 @@ export class Compiler extends DiagnosticEmitter {
     }
 
     console.log(regexModule.getNumFunctions());
+    const functionNames = [];
     for (let i = 0; i < regexModule.getNumFunctions(); i++) {
+      functionNames.push(regexModule.getFunctionByIndex(i).name);
       console.log(binaryen.getFunctionInfo(regexModule.getFunctionByIndex(i)));
     }
 
    // Create the module with the AS C Module Wrapper
    let regexAsModule = Module.createFrom(binary);
    console.log(regexAsModule);
+
+   functionNames.forEach(name => {
+    const func = regexAsModule.getFunction(name);
+    module.addFunction(func);
+   });
 
     return module;
   }
