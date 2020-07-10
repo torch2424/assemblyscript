@@ -1,5 +1,5 @@
 import {exportstar} from "./reexport";
-export {exportstart};
+export {exportstar};
 export {
   a,
   a as renamed_a,
