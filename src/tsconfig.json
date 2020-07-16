@@ -5,6 +5,7 @@
     "allowJs": false,
     "sourceMap": true,
     "target": "esnext",
+    "types": [ "node" ],
     "strict": true
   },
   "include": [

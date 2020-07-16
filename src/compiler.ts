@@ -687,6 +687,8 @@ export class Compiler extends DiagnosticEmitter {
       }
     }
     var exportsStar = file.exportsStar;
+    console.log('ensureModuleExports file.source', file.source);
+    console.log('ensureModuleExports file.exportsStar', file.exportsStar);
     if (exportsStar)  {
       for (let i = 0, k = exportsStar.length; i < k; ++i) {
         this.ensureModuleExports(exportsStar[i]);
@@ -2053,6 +2055,7 @@ export class Compiler extends DiagnosticEmitter {
         let exportStatement = <ExportStatement>statement;
         let internalPath = exportStatement.internalPath;
         if (internalPath !== null) {
+          // console.log('NodeKind.EXPORT', exportStatement.path);
           this.compileFileByPath(internalPath, assert(exportStatement.path));
         }
         break;
@@ -2063,6 +2066,7 @@ export class Compiler extends DiagnosticEmitter {
       }
       case NodeKind.IMPORT: {
         let importStatement = <ImportStatement>statement;
+        console.log('NodeKind.IMPORT Import Statement', importStatement.internalPath, importStatement.path);
         this.compileFileByPath(importStatement.internalPath, importStatement.path);
         break;
       }
