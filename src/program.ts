@@ -1036,12 +1036,6 @@ export class Program extends DiagnosticEmitter {
           queuedImport.foreignPathAlt,
           queuedExports
         );
-        if (foreignIdentifier.text == 'exportstar') {
-          console.log('we in hur', foreignIdentifier.text);
-          console.log(queuedImport.foreignPath);
-          console.log(queuedImport.foreignPathAlt);
-          // console.log(queuedExports);
-        }
         if (element) {
           queuedImport.localFile.add(
             localIdentifier.text,
@@ -1081,6 +1075,7 @@ export class Program extends DiagnosticEmitter {
     for (let _keys = Map_keys(queuedExports), i = 0, k = _keys.length; i < k; ++i) {
       let file = unchecked(_keys[i]);
       let exports = assert(queuedExports.get(file));
+      console.log('yoooo these are the exports for the file', exports);
       // TODO: for (let [exportName, queuedExport] of exports) {
       for (let exportNames = Map_keys(exports), j = 0, l = exportNames.length; j < l; ++j) {
         let exportName = unchecked(exportNames[j]);
@@ -1615,11 +1610,6 @@ export class Program extends DiagnosticEmitter {
     /** So far queued exports. */
     queuedExports: Map<File,Map<string,QueuedExport>>
   ): DeclaredElement | null {
-
-    if (foreignName === 'exportstar') {
-      console.log('lookupForeign', foreignName, foreignPath);
-    }
-
     do {
       let foreignFile = this.lookupForeignFile(foreignPath, foreignPathAlt);
       if (!foreignFile) return null; // no such file
@@ -1632,18 +1622,17 @@ export class Program extends DiagnosticEmitter {
       if (queuedExports.has(foreignFile)) {
         let fileQueuedExports = assert(queuedExports.get(foreignFile));
         if (fileQueuedExports.has(foreignName)) {
-          console.log('the foreing file has the import');
           let queuedExport = assert(fileQueuedExports.get(foreignName));
           let queuedExportForeignPath = queuedExport.foreignPath;
-          console.log('queuedExport', queuedExport);
+          console.log('importing queuedExport', queuedExport);
           if (queuedExportForeignPath) { // imported from another file
-            console.log('suppppp')
+            console.log('suppppp queuedExport had the foreignPath')
             foreignName = queuedExport.localIdentifier.text;
             foreignPath = queuedExportForeignPath;
             foreignPathAlt = assert(queuedExport.foreignPathAlt);
             continue;
           } else { // local element of this file
-            console.log('yooooooo');
+            console.log('yooooooo could not find the foreignPath');
             element = foreignFile.lookupInSelf(queuedExport.localIdentifier.text);
             if (element) return element;
             console.log('if we here that is not good', element);
