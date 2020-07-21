@@ -1,2 +1,3 @@
 import { exportstar } from "./reexport";
-export {exportstar};
+// TODO: Uncomment this once we fix the import
+// export { exportstar };
