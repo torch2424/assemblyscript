@@ -1007,10 +1007,12 @@ export class Program extends DiagnosticEmitter {
 
     // queued exports * should be linkable now that all files have been processed
     // TODO: for (let [file, starExports] of queuedExportsStar) {
+    // console.log("queuedExportsStar name", queuedExportsStar);
     for (let _keys = Map_keys(queuedExportsStar), i = 0, k = _keys.length; i < k; ++i) {
       let file = _keys[i];
+      console.log('queuedExportsStar file.name', file.name);
       let starExports = assert(queuedExportsStar.get(file));
-      console.log("starExports", starExports);
+      // console.log("starExports", starExports);
       for (let j = 0, l = starExports.length; j < l; ++j) {
         let exportStar = unchecked(starExports[j]);
         let foreignFile = this.lookupForeignFile(exportStar.foreignPath, exportStar.foreignPathAlt);
@@ -1030,6 +1032,12 @@ export class Program extends DiagnosticEmitter {
       let queuedImport = queuedImports[i];
       let localIdentifier = queuedImport.localIdentifier;
       let foreignIdentifier = queuedImport.foreignIdentifier;
+
+      // foreignIdentifier will be null for import *
+      if (localIdentifier.text.includes('reexport')) {
+        console.log('traversing queued imports', localIdentifier.text, foreignIdentifier);
+      }
+
       if (foreignIdentifier) { // i.e. import { foo [as bar] } from "./baz"
         let element = this.lookupForeign(
           foreignIdentifier.text,
@@ -1045,6 +1053,7 @@ export class Program extends DiagnosticEmitter {
           );
         } else {
           // FIXME: file not found is not reported if this happens?
+          console.log('THREW AN ERROR on this identifier', localIdentifier.text, foreignIdentifier);
           console.log('This is the actual error we are throwing');
           this.error(
             DiagnosticCode.Module_0_has_no_exported_member_1,
@@ -1073,10 +1082,12 @@ export class Program extends DiagnosticEmitter {
 
     // queued exports should be resolvable now that imports are finalized
     // TODO: for (let [file, exports] of queuedExports) {
+    // console.log('torch2424 I think the fix will be here')
     for (let _keys = Map_keys(queuedExports), i = 0, k = _keys.length; i < k; ++i) {
       let file = unchecked(_keys[i]);
       let exports = assert(queuedExports.get(file));
-      console.log('yoooo these are the exports for the file', exports);
+      // console.log('finalized imports queued export exports', exports);
+      // console.log('yoooo these are the exports for the file', exports);
       // TODO: for (let [exportName, queuedExport] of exports) {
       for (let exportNames = Map_keys(exports), j = 0, l = exportNames.length; j < l; ++j) {
         let exportName = unchecked(exportNames[j]);
@@ -1100,6 +1111,7 @@ export class Program extends DiagnosticEmitter {
             );
           }
         } else { // i.e. export { foo [as bar] }
+          console.log('finalized imports final export localName', localName);
           let element = file.lookupInSelf(localName);
           if (element) {
             file.ensureExport(exportName, element);
@@ -1627,7 +1639,7 @@ export class Program extends DiagnosticEmitter {
           let queuedExportForeignPath = queuedExport.foreignPath;
           console.log('importing queuedExport', queuedExport);
           if (queuedExportForeignPath) { // imported from another file
-            console.log('suppppp queuedExport had the foreignPath')
+            // console.log('suppppp queuedExport had the foreignPath')
             foreignName = queuedExport.localIdentifier.text;
             foreignPath = queuedExportForeignPath;
             foreignPathAlt = assert(queuedExport.foreignPathAlt);
@@ -2030,12 +2042,14 @@ export class Program extends DiagnosticEmitter {
     queuedExportsStar: Map<File,QueuedExportStar[]>
   ): void {
     var members = statement.members;
+    // console.log('initializeExports members', members);
     if (members) { // export { foo, bar } [from "./baz"]
       for (let i = 0, k = members.length; i < k; ++i) {
         this.initializeExport(members[i], parent, statement.internalPath, queuedExports);
       }
     } else { // export * from "./baz"
       let queued: QueuedExportStar[];
+      // console.log('export * statement', statement);
       if (queuedExportsStar.has(parent)) queued = assert(queuedExportsStar.get(parent));
       else queuedExportsStar.set(parent, queued = []);
       let foreignPath = statement.internalPath!; // must be set for export *
@@ -2186,13 +2200,16 @@ export class Program extends DiagnosticEmitter {
     } else {
       let namespaceName = statement.namespaceName;
       if (namespaceName) { // import * as foo from "./bar"
-        queuedImports.push(new QueuedImport(
+        // console.log('import * statement', statement);
+        let queuedImportStar = new QueuedImport(
           parent,
           namespaceName,
           null, // indicates import *
           statement.internalPath,
           statement.internalPath + INDEX_SUFFIX
-        ));
+        );
+        // console.log('queuedImpoortStar', queuedImportStar);
+        queuedImports.push(queuedImportStar);
       } else {
         // import "./foo"
       }
