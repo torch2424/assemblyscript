@@ -1010,6 +1010,7 @@ export class Program extends DiagnosticEmitter {
     for (let _keys = Map_keys(queuedExportsStar), i = 0, k = _keys.length; i < k; ++i) {
       let file = _keys[i];
       let starExports = assert(queuedExportsStar.get(file));
+      console.log("starExports", starExports);
       for (let j = 0, l = starExports.length; j < l; ++j) {
         let exportStar = unchecked(starExports[j]);
         let foreignFile = this.lookupForeignFile(exportStar.foreignPath, exportStar.foreignPathAlt);
