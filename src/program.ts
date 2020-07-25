@@ -953,6 +953,7 @@ export class Program extends DiagnosticEmitter {
     var queuedImplements = new Array<ClassPrototype>();
 
     // initialize relevant declaration-like statements of the entire program
+    console.log('---torch2424 queing declarations---');
     for (let i = 0, k = this.sources.length; i < k; ++i) {
       let source = this.sources[i];
       let file = new File(this, source);
@@ -1007,6 +1008,7 @@ export class Program extends DiagnosticEmitter {
 
     // queued exports * should be linkable now that all files have been processed
     // TODO: for (let [file, starExports] of queuedExportsStar) {
+    console.log('---torch2424 queing export *---');
     // console.log("queuedExportsStar name", queuedExportsStar);
     for (let _keys = Map_keys(queuedExportsStar), i = 0, k = _keys.length; i < k; ++i) {
       let file = _keys[i];
@@ -1028,6 +1030,7 @@ export class Program extends DiagnosticEmitter {
     }
 
     // queued imports should be resolvable now through traversing exports and queued exports
+    console.log('---torch2424 queing imports---');
     for (let i = 0, k = queuedImports.length; i < k; ++i) {
       let queuedImport = queuedImports[i];
       let localIdentifier = queuedImport.localIdentifier;
@@ -1035,7 +1038,7 @@ export class Program extends DiagnosticEmitter {
 
       // foreignIdentifier will be null for import *
       if (localIdentifier.text.includes('reexport')) {
-        console.log('traversing queued imports', localIdentifier.text, foreignIdentifier);
+        console.log('traversing queued imports', localIdentifier.text);
       }
 
       if (foreignIdentifier) { // i.e. import { foo [as bar] } from "./baz"
@@ -1053,7 +1056,7 @@ export class Program extends DiagnosticEmitter {
           );
         } else {
           // FIXME: file not found is not reported if this happens?
-          console.log('THREW AN ERROR on this identifier', localIdentifier.text, foreignIdentifier);
+          console.log('THREW AN ERROR on this identifier', localIdentifier.text);
           console.log('This is the actual error we are throwing');
           this.error(
             DiagnosticCode.Module_0_has_no_exported_member_1,
@@ -1061,6 +1064,7 @@ export class Program extends DiagnosticEmitter {
           );
         }
       } else { // i.e. import * as bar from "./bar"
+        console.log('yoooooo import * localIdentifier.text', localIdentifier.text);
         let foreignFile = this.lookupForeignFile(queuedImport.foreignPath, queuedImport.foreignPathAlt);
         if (foreignFile) {
           let localFile = queuedImport.localFile;
@@ -1082,6 +1086,7 @@ export class Program extends DiagnosticEmitter {
 
     // queued exports should be resolvable now that imports are finalized
     // TODO: for (let [file, exports] of queuedExports) {
+    console.log('---torch2424 queing exports---');
     // console.log('torch2424 I think the fix will be here')
     for (let _keys = Map_keys(queuedExports), i = 0, k = _keys.length; i < k; ++i) {
       let file = unchecked(_keys[i]);
@@ -1631,24 +1636,25 @@ export class Program extends DiagnosticEmitter {
       let element = foreignFile.lookupExport(foreignName);
       if (element) return element;
 
+      console.log('lookupForeign foreignName foreignPath', foreignName, foreignPath);
+
       // otherwise traverse queued exports
       if (queuedExports.has(foreignFile)) {
         let fileQueuedExports = assert(queuedExports.get(foreignFile));
         if (fileQueuedExports.has(foreignName)) {
           let queuedExport = assert(fileQueuedExports.get(foreignName));
           let queuedExportForeignPath = queuedExport.foreignPath;
-          console.log('importing queuedExport', queuedExport);
+          console.log('lookupForeign importing queuedExport', queuedExport);
           if (queuedExportForeignPath) { // imported from another file
-            // console.log('suppppp queuedExport had the foreignPath')
             foreignName = queuedExport.localIdentifier.text;
             foreignPath = queuedExportForeignPath;
             foreignPathAlt = assert(queuedExport.foreignPathAlt);
             continue;
           } else { // local element of this file
-            console.log('yooooooo could not find the foreignPath');
+            console.log('yooooooo could not find the foreignPath, looking up in file lookupInSelf.');
             element = foreignFile.lookupInSelf(queuedExport.localIdentifier.text);
             if (element) return element;
-            console.log('if we here that is not good', element);
+            console.log('if we here that is not good, element', element);
           }
         }
       }
@@ -2042,7 +2048,6 @@ export class Program extends DiagnosticEmitter {
     queuedExportsStar: Map<File,QueuedExportStar[]>
   ): void {
     var members = statement.members;
-    // console.log('initializeExports members', members);
     if (members) { // export { foo, bar } [from "./baz"]
       for (let i = 0, k = members.length; i < k; ++i) {
         this.initializeExport(members[i], parent, statement.internalPath, queuedExports);
@@ -2077,6 +2082,11 @@ export class Program extends DiagnosticEmitter {
     var localName = member.localName.text;
     var foreignName = member.exportedName.text;
 
+    // TODO: torch2424 Need to figure out why reexportstar is not a member
+    if (foreignName == 'reexportstar') {
+      console.log('initializeExport', foreignName);
+    }
+
     // check for duplicates
     var element = localFile.lookupExport(foreignName);
     if (element) {
@@ -2093,8 +2103,18 @@ export class Program extends DiagnosticEmitter {
       if (element = localFile.lookupInSelf(localName)) {
         localFile.ensureExport(foreignName, element);
 
+        if (foreignName == 'reexportstar') {
+          console.log('initializeExport rexport star is resolved right away');
+        }
+
+
       // otherwise queue it
       } else {
+
+        if (foreignName == 'reexportstar') {
+          console.log('initializeExport rexport star is queued');
+        }
+
         let queued: Map<string,QueuedExport>;
         if (queuedExports.has(localFile)) queued = assert(queuedExports.get(localFile));
         else queuedExports.set(localFile, queued = new Map());
@@ -2637,7 +2657,7 @@ export abstract class Element {
   /** Constructs a new program element. */
   protected constructor(
     /** Specific element kind. */
-    public kind: ElementKind,
+    public kind: ElementKind
     /** Simple name. */
     public name: string,
     /** Internal name referring to this element. */
@@ -2681,6 +2701,9 @@ export abstract class Element {
   /** Looks up the element with the specified name within this element. */
   lookupInSelf(name: string): DeclaredElement | null {
     var members = this.members;
+    if (name == 'reexportstar') {
+      console.log('Element lookupInSelf, name, members === null', name, members === null);
+    }
     if (members !== null && members.has(name)) return assert(members.get(name));
     return null;
   }
@@ -2951,8 +2974,17 @@ export class File extends Element {
 
   /* @override */
   lookupInSelf(name: string): DeclaredElement | null {
+    if (name == 'reexportstar') {
+      console.log('File lookupInSelf torch2424 this.name, name', this.name, name);
+    }
+
     var element = super.lookupInSelf(name);
     if (element) return element;
+
+    if (name == 'reexportstar') {
+      console.log('File lookupInSelf, element', element);
+    }
+
     var exportsStar = this.exportsStar;
     if (exportsStar) {
       for (let i = 0, k = exportsStar.length; i < k; ++i) {
